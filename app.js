@@ -7,11 +7,28 @@ var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
 var GitHubStrategy = require('passport-github2').Strategy;
 var partials = require('express-partials');
+var http=require('http');
+var Bluebird=require('bluebird');
 var pretty = require('express-prettify');
+var mongoose = require('mongoose');
+//Including User model 
+var userModel = require('./UserProf');
+var UserProf = mongoose.model('UserProf');
 app.use(pretty({ query: 'pretty' }));
 
-var GITHUB_CLIENT_ID = "a6ee35e7724a9f013edc";
-var GITHUB_CLIENT_SECRET = "d636b6df2cbcd639d7608ca13e8203c209f28a07";
+
+
+//to Connect Mongodb
+//Data Base Connection
+var dbPath = "mongodb://localhost/GitHubdatabase";
+mongoose.connect(dbPath);
+mongoose.connection.once('open',function(){
+  console.log("Database Connection Established Successfully...");
+});
+
+
+var GITHUB_CLIENT_ID = "22547ded1277b051f52e";
+var GITHUB_CLIENT_SECRET = "fd9e30b64e49b0b244880028b6bb74eaf3be6b1e";
 
 passport.serializeUser(function(user, done) {
   done(null, user);
@@ -30,6 +47,8 @@ passport.use(new GitHubStrategy({
   },
   function(accessToken, refreshToken, profile, done) {
     // asynchronous verification, for effect...
+    console.log(accessToken);
+    console.log(profile);
     process.nextTick(function () {
       
       return done(null, profile);
@@ -54,14 +73,59 @@ app.use(passport.session());
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', function(req, res){
+ 
+app.get('/',ensureAuthenticated, function(req, res){
 
-  res.render('index', { user: req.user });
+console.log(req.user.id);
+UserProf.find(function(err,result){
+    if(err)
+    {
+      res.status(200).send("Sorry! User is not in github or Some error has occured..."+err);
+    }
+    else if (result.length !== 0)
+    {
+      //console.log(result.length);
+      for(var i=0;i<result.length;i++)
+      {
+        if(result[i].usergit[i].id == req.user.id)
+        {
+          //console.log("this is User");
+        res.send(result[i].usergit[i]._json);
+        }
+      }      
+      
+    }
+      else
+      {
+       
+       var userprofile = new UserProf();
+       userprofile.usergit.push(req.user);
+       userprofile.save();
+        res.send("user Saved successfully!!!");
+       }
+    })
 });
 
+app.get('/user',function(req,res){
+UserProf.find(function(err,user){
+    if(err)
+    {
+      res.status(200).send("Sorry! User is not in github or Some error has occured..."+err);
+    }
+    else if (user)
+    {
+      //console.log("this is User");
+        res.send(user);
+    }
+    })
+})
+
+
 app.get('/account', ensureAuthenticated, function(req, res){
-  //res.render('account', { user: req.user });
-  res.json(req.user);
+
+
+  res.status(200).send(req.user);
+
 });
 
 app.get('/login', function(req, res){
@@ -69,7 +133,7 @@ app.get('/login', function(req, res){
 });
 
 app.get('/auth/github',
-  passport.authenticate('github', { scope: [ 'user:email' ] }),
+  passport.authenticate('github', { scope: [ 'user:email'] }),
   function(req, res){
   });
 
