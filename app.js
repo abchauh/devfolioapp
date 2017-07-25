@@ -8,7 +8,6 @@ var methodOverride = require('method-override');
 var GitHubStrategy = require('passport-github2').Strategy;
 var partials = require('express-partials');
 var http=require('http');
-var Bluebird=require('bluebird');
 var pretty = require('express-prettify');
 var mongoose = require('mongoose');
 //Including User model 
@@ -17,8 +16,6 @@ var UserProf = mongoose.model('UserProf');
 app.use(pretty({ query: 'pretty' }));
 
 
-
-//to Connect Mongodb
 //Data Base Connection
 var dbPath = "mongodb://localhost/GitHubdatabase";
 mongoose.connect(dbPath);
@@ -27,8 +24,8 @@ mongoose.connection.once('open',function(){
 });
 
 
-var GITHUB_CLIENT_ID = "22547ded1277b051f52e";
-var GITHUB_CLIENT_SECRET = "fd9e30b64e49b0b244880028b6bb74eaf3be6b1e";
+var GITHUB_CLIENT_ID = "a6ee35e7724a9f013edc";
+var GITHUB_CLIENT_SECRET = "d636b6df2cbcd639d7608ca13e8203c209f28a07";
 
 passport.serializeUser(function(user, done) {
   done(null, user);
@@ -80,7 +77,7 @@ console.log(req.user.id);
 UserProf.find(function(err,result){
     if(err)
     {
-      res.status(200).send("Sorry! User is not in github or Some error has occured..."+err);
+      res.status(200).send("Sorry! Some error has occured..."+err);
     }
     else if (result.length !== 0)
     {
@@ -110,7 +107,7 @@ app.get('/user',function(req,res){
 UserProf.find(function(err,user){
     if(err)
     {
-      res.status(200).send("Sorry! User is not in github or Some error has occured..."+err);
+      res.status(200).send("Sorry! Some error has occured..."+err);
     }
     else if (user)
     {
