@@ -31,8 +31,8 @@ mongoose.connection.once('open', function () {
 
 var accesstoken;
 //Github Client ID and Client Secret
-var GITHUB_CLIENT_ID = "22547ded1277b051f52e";
-var GITHUB_CLIENT_SECRET = "fd9e30b64e49b0b244880028b6bb74eaf3be6b1e";
+var GITHUB_CLIENT_ID = "a6ee35e7724a9f013edc";
+var GITHUB_CLIENT_SECRET = "d636b6df2cbcd639d7608ca13e8203c209f28a07";
 
 //serialization Of Passport
 passport.serializeUser(function (user, done) {
