@@ -1,18 +1,22 @@
 {
-  "name": "passport-Authentication-Using-Github",
-  "version": "1.0.0",
-  "dependencies": {
-    "body-parser": "^1.13.3",
-    "ejs": ">= 0.0.0",
-    "express": ">= 0.0.0",
-    "express-partials": "^0.3.0",
-    "express-session": "^1.11.3",
-    "method-override": "^2.3.5",
-    "passport": ">= 0.0.0",
-    "passport-github2": ">= 0.0.0",
-    "router": "^1.1.3",
-    "pretty": "*",
-    "express-prettify": "*",
-    "mongoose":"*"
-  }
+    "name": "passport-Authentication-Using-Github",
+    "version": "1.0.0",
+    "dependencies": {
+        "body-parser": "^1.13.3",
+        "ejs": ">= 0.0.0",
+        "express": ">= 0.0.0",
+        "express-partials": "^0.3.0",
+        "express-session": "^1.11.3",
+        "method-override": "^2.3.5",
+        "passport": ">= 0.0.0",
+        "passport-github2": ">= 0.0.0",
+        "router": "^1.1.3",
+        "pretty": "*",
+        "express-prettify": "*",
+        "http": "*",
+        "request": "*",
+        "util": "*",
+        "mongoose": "*"
+
+    }
 }

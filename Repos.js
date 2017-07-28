@@ -3,12 +3,11 @@ var mongoose = require('mongoose');
 //creating object 
 var Schema = mongoose.Schema;
 
-var userSchema = new Schema({
+var repoSchema = new Schema({
 
-	name:{type:String},
 	email:{type:String},
-	usergit : []
+	repository:''
 
 });
 
-mongoose.model('UserProf',userSchema);
+mongoose.model('Repo',repoSchema);
