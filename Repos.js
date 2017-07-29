@@ -6,7 +6,9 @@ var Schema = mongoose.Schema;
 var repoSchema = new Schema({
 
 	email:{type:String},
-	repository:''
+	repository:'',
+	language:[],
+	commits:''
 
 });
 

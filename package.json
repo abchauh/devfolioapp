@@ -16,7 +16,8 @@
         "http": "*",
         "request": "*",
         "util": "*",
-        "mongoose": "*"
-
+        "mongoose": "*",
+        "timer-stopwatch":"*",
+        "system-sleep":"*"
     }
 }

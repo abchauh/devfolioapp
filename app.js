@@ -10,7 +10,9 @@ var partials = require('express-partials');
 var http = require('http');
 var request = require('request');
 var pretty = require('express-prettify');
+var Stopwatch = require('timer-stopwatch');
 var mongoose = require('mongoose');
+var sleep = require('system-sleep');
 //Including User model 
 var userModel = require('./UserProf');
 var repoModel = require('./Repos');
@@ -22,7 +24,7 @@ app.use(pretty({
 
 
 //Data Base Connection
-var dbPath = "mongodb://localhost/GithubUserInfoApp";
+var dbPath = "mongodb://localhost/GithubUserInfoApptoStoregi";
 mongoose.connect(dbPath);
 mongoose.connection.once('open', function () {
     console.log("Database Connection Established Successfully...");
@@ -31,8 +33,8 @@ mongoose.connection.once('open', function () {
 
 var accesstoken;
 //Github Client ID and Client Secret
-var GITHUB_CLIENT_ID = "a6ee35e7724a9f013edc";
-var GITHUB_CLIENT_SECRET = "d636b6df2cbcd639d7608ca13e8203c209f28a07";
+var GITHUB_CLIENT_ID = "22547ded1277b051f52e";
+var GITHUB_CLIENT_SECRET = "fd9e30b64e49b0b244880028b6bb74eaf3be6b1e";
 
 //serialization Of Passport
 passport.serializeUser(function (user, done) {
@@ -89,14 +91,19 @@ app.get('/', ensureAuthenticated, function (req, res) {
         if (err) {
             res.status(200).send("Sorry! Some error has occured... " + err);
         } else if (result.length !== 0) {
-            console.log(result.length);
+            //console.log(result.length);
             for (var i = 0; i < result.length; i++) {
                 if (result[i].usergit[i].id == req.user.id) {
                     console.log("************************:this is User Profile :********************************");
                     req.session.email = req.user.emails[0].value;
                     console.log(req.session.email);
                     //res.send(result[i].usergit[i]._json);
-                    res.send(result[i]);
+                    //res.send(result[i]);
+                    res.render('info', {
+                        user: req.user,
+                        result: result[i],
+                        message: ": click the link above  to update the repository information and Do no refresh or go back while updation... :"
+                    })
                 }
             }
         } else {
@@ -106,7 +113,7 @@ app.get('/', ensureAuthenticated, function (req, res) {
             userprofile.email = req.user.emails[0].value;
             userprofile.save();
             req.session.email = req.user.emails[0].value;
-            console.log(req.session.email);
+            //console.log(req.session.email);
             res.send("user Saved successfully!!!");
         }
     })
@@ -115,7 +122,7 @@ app.get('/', ensureAuthenticated, function (req, res) {
 
 //Can accesssible only after user Logged in.....
 //API to add the user repos details to Database Public as well as private...
-app.get('/repos/details', ensureAuthenticated, function (req, res) {
+app.get('/repos/details/insert', ensureAuthenticated, function (req, res) {
     UserProf.find({
         email: req.session.email
     }, function (err, user) {
@@ -147,12 +154,87 @@ app.get('/repos/details', ensureAuthenticated, function (req, res) {
                             repos.email = req.session.email;
                             repos.save();
                             console.log("Repository Has been saved in the Database");
-                            res.send(str);
+                            //res.send(str);
                         } else {
 
                             res.send("Unable to fetch the Repository from Github!");
                         }
                     });
+
+                    Repo.find({
+                        email: req.session.email
+                    }, function (err, result) {
+                        if (err) {
+                            res.status(200).send("Sorry! Some error has occured... " + err);
+                        } else {
+                            var commit = 0;
+                            for (var i = 0; i < result[0].repository.length; i++) {
+                                request({
+                                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/commits?access_token=' + accesstoken,
+                                    headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                                        "access_token": accesstoken,
+                                        "scope": "repo,user:email",
+                                        "token_type": "bearer"
+                                    }
+
+                                }, function (error, response, body) {
+                                    if (!error && response.statusCode == 200) {
+                                        console.log("*****************************: Fetched all the commits of the repository :*************************");
+                                        var str = JSON.parse(body);
+                                        commit = commit + str.length;
+                                        result[0].commits = commit;
+                                        result[0].save();
+                                    }
+                                });
+                            }
+
+                            console.log("All commits are fetched and Updated!!!");
+                        }
+                    })
+
+                    Repo.find({
+                        email: req.session.email
+                    }, function (err, result) {
+                        if (err) {
+                            res.status(200).send("Sorry! Some error has occured... " + err);
+                        } else {
+                            console.log(result[0].language.length);
+                            result[0].language.splice(0, result[0].language.length);
+                            result[0].save();
+                            console.log(result[0].language.length);
+                            console.log(result[0].repository.length);
+
+                            for (var i = 0; i < result[0].repository.length; i++) {
+                                request({
+                                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/languages?access_token=' + accesstoken,
+                                    headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                                        "access_token": accesstoken,
+                                        "scope": "repo,user:email",
+                                        "token_type": "bearer"
+                                    }
+
+                                }, function (error, response, body) {
+                                    if (!error && response.statusCode == 200) {
+                                        console.log("*****************************: updated the languages of the repository :*************************");
+                                        var str = JSON.parse(body);
+                                        console.log(str);
+                                        // str.repoName = result[0].repository[i].full_name;
+                                        result[0].language.push(str);
+                                        result[0].save();
+
+                                    }
+                                });
+                                sleep(1100);
+
+                            }
+
+
+                            console.log("All languages are Fetched and updated!!!");
+                        }
+                    })
+
                 } else {
                     request({
                         url: 'https://api.github.com/user/repos?access_token=' + accesstoken,
@@ -169,23 +251,233 @@ app.get('/repos/details', ensureAuthenticated, function (req, res) {
                             var str = JSON.parse(body);
                             result.repository = str;
                             console.log("Repository Has been updated in the Database");
-                            res.send(str);
+                            //res.send(result);
                         } else {
                             res.send("Unable to update the Repository from Github!");
                         }
                     });
+
+                    Repo.find({
+                        email: req.session.email
+                    }, function (err, result) {
+                        if (err) {
+                            res.status(200).send("Sorry! Some error has occured... " + err);
+                        } else {
+                            console.log(result[0].language.length);
+                            result[0].language.splice(0, result[0].language.length);
+                            result[0].save();
+                            console.log(result[0].language.length);
+                            console.log(result[0].repository.length);
+                            var i;
+                            for (i = 0; i < result[0].repository.length; i++) {
+                                request({
+                                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/languages?access_token=' + accesstoken,
+                                    headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                                        "access_token": accesstoken,
+                                        "scope": "repo,user:email",
+                                        "token_type": "bearer"
+                                    }
+
+                                }, function (error, response, body) {
+                                    if (!error && response.statusCode == 200) {
+                                        console.log("*****************************: updated the languages of the repository :*************************");
+                                        var str = JSON.parse(body);
+                                        console.log(str);
+                                        // str.repoName = result[0].repository[i].full_name;
+                                        result[0].language.push(str);
+                                        result[0].save();
+
+                                    }
+                                });
+                                sleep(1200);
+
+                            }
+                            console.log(i);
+
+                            if (i == (result[0].repository.length)) {
+                                sleep(1200)
+                                console.log("All languages are Fetched and updated!!!");
+                                /*res.setHeader("Content-Type", "text/html");
+                                res.render('updated',{
+                                  user: req.user
+                                });*/
+                                res.render('updated', {
+                                    user: req.user
+                                })
+                            }
+                        }
+                    })
+
+                    Repo.find({
+                        email: req.session.email
+                    }, function (err, result) {
+                        if (err) {
+                            res.status(200).send("Sorry! Some error has occured... " + err);
+                        } else {
+                            var commit = 0;
+                            for (var i = 0; i < result[0].repository.length; i++) {
+                                request({
+                                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/commits?access_token=' + accesstoken,
+                                    headers: {
+                                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                                        "access_token": accesstoken,
+                                        "scope": "repo,user:email",
+                                        "token_type": "bearer"
+                                    }
+
+                                }, function (error, response, body) {
+                                    if (!error && response.statusCode == 200) {
+                                        console.log("*****************************: Fetched all the commits of the repository :*************************");
+                                        var str = JSON.parse(body);
+                                        commit = commit + str.length;
+                                        result[0].commits = commit;
+                                        result[0].save();
+                                    }
+                                });
+                            }
+
+                            console.log("All commits are fetched and Updated!!!");
+                        }
+                    })
+
+                }
+            })
+        }
+    })
+
+    // Set the date we're counting down to
+
+    var options = {
+        refreshRateMS: 1000, // How often the clock should be updated 
+    }
+
+    var timer = new Stopwatch(1000, options);
+
+    timer.start();
+    // Fires every 50ms by default. Change setting the 'refreshRateMS' options 
+    timer.onTime(function (time) {
+        console.log("Please wait for " + Math.floor(time.ms / 1000) + " seconds while we fetch your details...");
+    });
+
+    // Fires when the timer is done 
+    timer.onDone(function () {
+        console.log('Repository is being Fetched and Updated')
+        timer.stop();
+        //return res.send('Repository is updating, Do not refresh or go back till we finish updating...');
+        //res.end();
+    });
+
+
+})
+
+app.get('/repos/details/views', ensureAuthenticated, function (req, res) {
+
+    UserProf.find({
+        email: req.session.email
+    }, function (err, user) {
+        if (err) {
+            res.status(200).send("Sorry! Some error has occured..." + err);
+        } else if (user) {
+            console.log("*************************:User found:************************");
+            Repo.find({
+                email: req.session.email
+            }, function (err, result) {
+                if (err) {
+                    res.status(200).send("Sorry! Some error has occured... " + err);
+                } else {
+                    res.send(result);
                 }
             })
         }
     })
 })
 
-//API to calculate the amount and kind of code user has done...
-app.get('/users/repository/codecalc', ensureAuthenticated, function (req, res) {
+//API to calculate the Commit user has done...
+app.get('/users/repository/commits', ensureAuthenticated, function (req, res) {
 
-//Didn't Done yet to complete...
+    Repo.find({
+        email: req.session.email
+    }, function (err, result) {
+        if (err) {
+            res.status(200).send("Sorry! Some error has occured... " + err);
+        } else {
+            var commit = 0;
+            for (var i = 0; i < result[0].repository.length; i++) {
+                request({
+                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/commits?access_token=' + accesstoken,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                        "access_token": accesstoken,
+                        "scope": "repo,user:email",
+                        "token_type": "bearer"
+                    }
+
+                }, function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        console.log("*****************************: Fetched all the commits of the repository :*************************");
+                        var str = JSON.parse(body);
+                        commit = commit + str.length;
+                        result[0].commits = commit;
+                        result[0].save();
+                    }
+                });
+            }
+
+            console.log("All commits are fetched and Updated!!!");
+        }
+    })
+});
+//End of the Api of Commit user has done...         
+
+//Api to calculate the amount of code the user has done
+
+app.get('/users/repository/codes', ensureAuthenticated, function (req, res) {
+
+    Repo.find({
+        email: req.session.email
+    }, function (err, result) {
+        if (err) {
+            res.status(200).send("Sorry! Some error has occured... " + err);
+        } else {
+            console.log(result[0].language.length);
+            result[0].language.splice(0, result[0].language.length);
+            result[0].save();
+            console.log(result[0].language.length);
+            console.log(result[0].repository.length);
+
+            for (var i = 0; i < result[0].repository.length; i++) {
+                request({
+                    url: 'https://api.github.com/repos/' + result[0].repository[i].full_name + '/languages?access_token=' + accesstoken,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1521.3 Safari/537.36',
+                        "access_token": accesstoken,
+                        "scope": "repo,user:email",
+                        "token_type": "bearer"
+                    }
+
+                }, function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        console.log("*****************************: updated the languages of the repository :*************************");
+                        var str = JSON.parse(body);
+                        console.log(str);
+                        // str.repoName = result[0].repository[i].full_name;
+                        result[0].language.push(str);
+                        result[0].save();
+
+                    }
+                });
+                sleep(1100);
+
+            }
+
+
+            console.log("All languages are Fetched and updated!!!");
+        }
+    })
 
 });
+//End of API to Calculate the amount and kind of code user has done...
 
 app.get('/login', function (req, res) {
     res.render('login', {
